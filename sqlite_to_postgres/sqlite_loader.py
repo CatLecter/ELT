@@ -14,7 +14,7 @@ class SQLiteLoader:
 
     def get_table(self, table_name: str, schema: dataclass):
         """Функция получения данных из БД sqlite
-           пачками по 100 записей.
+        пачками по 100 записей.
         """
 
         table = []

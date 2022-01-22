@@ -6,12 +6,19 @@ authors = ["Vasilii Safronov <vasi1988@mail.ru>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "3.9.9"
-Django = "^3.2.9"
-django-debug-toolbar = "^3.2.2"
+python = "3.9.7"
+django-debug-toolbar = "^3.2.3"
 django-extensions = "^3.1.5"
 gunicorn = "^20.1.0"
+elasticsearch = "^7.15.2"
+pydantic = "^1.8.2"
+backoff = "^1.11.1"
+Django = "^4.0"
 psycopg2-binary = "^2.9.2"
+loguru = "^0.5.3"
+pymongo = "^4.0.1"
+python-dotenv = "^0.19.2"
+celery = {extras = ["amqp"], version = "^5.2.3"}
 
 [tool.poetry.dev-dependencies]
 black = "^21.11b1"

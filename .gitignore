@@ -8,7 +8,9 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+temp/
 env/
+.venv/
 develop-eggs/
 dist/
 downloads/
@@ -58,3 +60,4 @@ doc.html
 *.sqlite3
 static/
 film_works/
+*.log

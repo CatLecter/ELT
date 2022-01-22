@@ -1,0 +1,8 @@
+backoff==1.11.1
+celery[amqp]==5.2.3
+elasticsearch==7.16.3
+psycopg2-binary==2.9.3
+pydantic==1.9.0
+pymongo==4.0.1
+python-dotenv==0.19.2
+loguru==0.5.3
