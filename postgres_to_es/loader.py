@@ -1,14 +1,17 @@
 import json
 
 import backoff
+from config import log_config
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import ElasticsearchException
 from elasticsearch.helpers import bulk
-from pymongo import MongoClient
+from loguru import logger
+from models import Index
 from pymongo.errors import PyMongoError
 from urllib3.exceptions import HTTPError
+from utils import mongo_conn_context
 
-from models import Index
+logger.add(**log_config)
 
 
 class ElasticLoader:
@@ -22,21 +25,19 @@ class ElasticLoader:
     @backoff.on_exception(backoff.expo, PyMongoError, 10)
     def get_bulk(self) -> list:
         try:
-            with MongoClient(self.mongo_host) as mongo_client:
+            with mongo_conn_context(self.mongo_host) as mongo_client:
                 db = mongo_client["storage"]
                 collection = db["prepared_data"]
                 data = collection.find()
                 result = [Index(**_).dict() for _ in data]
                 return result
         except PyMongoError as e:
-            print("MondoDB error:", e)
-        finally:
-            mongo_client.close()
+            logger.exception(e)
 
     @backoff.on_exception(backoff.expo, PyMongoError, 10)
     def update_state(self, list_id: list) -> None:
         try:
-            with MongoClient(self.mongo_host) as mongo_client:
+            with mongo_conn_context(self.mongo_host) as mongo_client:
                 db = mongo_client["storage"]
                 collection = db["state"]
                 for _ in list_id:
@@ -45,22 +46,18 @@ class ElasticLoader:
                         {"$set": {"need_load": False}},
                     )
         except PyMongoError as e:
-            print("MondoDB error:", e)
-        finally:
-            mongo_client.close()
+            logger.exception(e)
 
     @backoff.on_exception(backoff.expo, PyMongoError, 10)
     def del_by_id(self, list_id: list) -> None:
         try:
-            with MongoClient(self.mongo_host) as mongo_client:
+            with mongo_conn_context(self.mongo_host) as mongo_client:
                 db = mongo_client["storage"]
                 collection = db["prepared_data"]
                 for _ in list_id:
                     collection.delete_one({"id": str(_["id"])})
         except PyMongoError as e:
-            print("MondoDB error:", e)
-        finally:
-            mongo_client.close()
+            logger.exception(e)
 
     @backoff.on_exception(backoff.expo, (ElasticsearchException, HTTPError), 10)
     def load(self) -> None:
@@ -75,12 +72,12 @@ class ElasticLoader:
                     ],
                 )
         except ElasticsearchException as e:
-            print("Elasticsearch error:", e)
+            logger.exception(e)
         finally:
             self.update_state(prepared_bulk)
             self.del_by_id(prepared_bulk)
             client.close()
-            print(f"Данные загружены в Elasticsearch.")
+            logger.info(f"Данные загружены в Elasticsearch.")
 
     @backoff.on_exception(backoff.expo, (ElasticsearchException, HTTPError), 10)
     def create_index(self) -> None:
@@ -94,7 +91,7 @@ class ElasticLoader:
                         ignore=400,
                     )
         except ElasticsearchException as e:
-            print("Elasticsearch error:", e)
+            logger.exception(e)
         finally:
             client.close()
 

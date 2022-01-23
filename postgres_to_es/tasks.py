@@ -1,15 +1,18 @@
 import psycopg2
 from celery import Celery, chain
 from celery.schedules import crontab
-from psycopg2.extras import DictCursor
-from pymongo import MongoClient
-
-from config import BROKER_URL, ES_URI, MONGO_URI, PG_DSN
+from config import BROKER_URL, ES_URI, MONGO_URI, PG_DSN, log_config
 from extractor import PsqlExtractor
 from loader import ElasticLoader
+from loguru import logger
+from psycopg2 import DatabaseError, OperationalError
+from psycopg2.extras import DictCursor
+from pymongo.errors import PyMongoError
 from state import MongoState
 from transform import Transform
-from utils import list_to_tuple
+from utils import list_to_tuple, mongo_conn_context
+
+logger.add(**log_config)
 
 celery_app = Celery("tasks", broker=BROKER_URL)
 
@@ -19,14 +22,12 @@ def serve_state() -> bool:
     """Задача для обслуживания состояния, хронящегося в MondoDB."""
 
     try:
-        with MongoClient(MONGO_URI) as mongo_client:
+        with mongo_conn_context(MONGO_URI) as mongo_client:
             serve = MongoState(mongo_client, "storage", "state")
             serve()
-    except Exception as e:
-        print("Error:", e)
-    finally:
-        mongo_client.close()
-        return True
+    except PyMongoError as e:
+        logger.exception(e)
+    return True
 
 
 @celery_app.task
@@ -36,9 +37,9 @@ def transform_films_work(previous_task: bool) -> bool:
     требующих загрузки и хранения в MondoDB.
     """
 
-    if previous_task is True:
+    if previous_task:
         try:
-            with MongoClient(MONGO_URI) as mongo_client, psycopg2.connect(
+            with mongo_conn_context(MONGO_URI) as mongo_client, psycopg2.connect(
                 **PG_DSN, cursor_factory=DictCursor
             ) as pg_conn:
                 pg = PsqlExtractor(pg_conn)
@@ -47,11 +48,9 @@ def transform_films_work(previous_task: bool) -> bool:
                 raw_data = (_ for _ in pg.get_data_by_id(tuple_id))
                 make_tf = Transform(raw_data)
                 make_tf.record_data()
-        except Exception as e:
-            print("Error:", e)
-        finally:
-            mongo_client.close()
-            return True
+        except (OperationalError, DatabaseError, PyMongoError) as e:
+            logger.exception(e)
+        return True
 
 
 @celery_app.task
@@ -61,9 +60,9 @@ def transform_persons(previous_task: bool) -> bool:
     требующих загрузки и хранения в MondoDB.
     """
 
-    if previous_task is True:
+    if previous_task:
         try:
-            with MongoClient(MONGO_URI) as mongo_client, psycopg2.connect(
+            with mongo_conn_context(MONGO_URI) as mongo_client, psycopg2.connect(
                 **PG_DSN, cursor_factory=DictCursor
             ) as pg_conn:
                 pg = PsqlExtractor(pg_conn)
@@ -73,11 +72,9 @@ def transform_persons(previous_task: bool) -> bool:
                 raw_data = (_ for _ in pg.get_data_by_id(tuple_id))
                 make_tf = Transform(raw_data)
                 make_tf.record_data()
-        except Exception as e:
-            print("Error:", e)
-        finally:
-            mongo_client.close()
-            return True
+        except (OperationalError, DatabaseError, PyMongoError) as e:
+            logger.exception(e)
+        return True
 
 
 @celery_app.task
@@ -87,9 +84,9 @@ def transform_genres(previous_task: bool) -> bool:
     требующих загрузки и хранения в MondoDB.
     """
 
-    if previous_task is True:
+    if previous_task:
         try:
-            with MongoClient(MONGO_URI) as mongo_client, psycopg2.connect(
+            with mongo_conn_context(MONGO_URI) as mongo_client, psycopg2.connect(
                 **PG_DSN, cursor_factory=DictCursor
             ) as pg_conn:
                 pg = PsqlExtractor(pg_conn)
@@ -99,18 +96,16 @@ def transform_genres(previous_task: bool) -> bool:
                 raw_data = (_ for _ in pg.get_data_by_id(tuple_id))
                 make_tf = Transform(raw_data)
                 make_tf.record_data()
-        except Exception as e:
-            print("Error:", e)
-        finally:
-            mongo_client.close()
-            return True
+        except (OperationalError, DatabaseError, PyMongoError) as e:
+            logger.exception(e)
+        return True
 
 
 @celery_app.task
 def es_load(previous_task: bool) -> None:
     """Задача для загрузки подготовленных данных в Elacticsearch."""
 
-    if previous_task is True:
+    if previous_task:
         load = ElasticLoader(ES_URI, MONGO_URI)
         load()
 

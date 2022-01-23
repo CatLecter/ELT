@@ -89,6 +89,7 @@ services:
       - ".env"
     volumes:
       - ./postgres_to_es/indexes/:/usr/src/etl/indexes
+      - ./postgres_to_es/log/:/usr/src/etl/log
     depends_on:
       - rabbitmq
       - mongo

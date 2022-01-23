@@ -10,10 +10,6 @@ COPY ./requirements.txt .
 
 RUN pip install --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
-#    && apt update \
-#    && apt install -y systemd redis-server \
-#    && service redis-server start \
-#    && service redis-server status
 
 COPY . .
 

@@ -2,14 +2,16 @@ import json
 
 import backoff
 import psycopg2
+from config import PG_DSN, list_tables, log_config
+from extractor import PsqlExtractor
+from loguru import logger
+from models import StateMap
 from psycopg2 import OperationalError
 from psycopg2.extras import DictCursor, DictRow
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
-from config import PG_DSN, list_tables
-from extractor import PsqlExtractor
-from models import StateMap
+logger.add(**log_config)
 
 
 class MongoState:
@@ -21,6 +23,7 @@ class MongoState:
         self.collection = self.db[collection]
         self.tables = list_tables
 
+    @logger.catch
     @backoff.on_exception(backoff.expo, PyMongoError, 10)
     def get_id(self, table_name: str) -> tuple:
         query = {"table_name": table_name, "need_load": True}
@@ -30,6 +33,7 @@ class MongoState:
             result.append(row["id"])
         return tuple(result)
 
+    @logger.catch
     @backoff.on_exception(backoff.expo, PyMongoError, 10)
     def update_or_add(self, value: DictRow, table: str) -> None:
         """
@@ -44,14 +48,19 @@ class MongoState:
         if find_id is None:
             as_json = json.loads(pg_inst.json())
             self.collection.insert_one(as_json)
-            print(f"Добавлена новая запись из таблицы {table} с id: {pg_inst.id}.")
+            logger.info(
+                f"Добавлена новая запись из таблицы {table} с id: {pg_inst.id}."
+            )
         elif str(pg_inst.updated_at) > find_id["updated_at"]:
             self.collection.update_one(
                 {"id": str(pg_inst.id)},
                 {"$set": {"updated_at": str(pg_inst.updated_at), "need_load": True}},
             )
-            print(f"Обновлены данные записи из таблицы {table} с id: {pg_inst.id}.")
+            logger.info(
+                f"Обновлены данные записи из таблицы {table} с id: {pg_inst.id}."
+            )
 
+    # @logger.catch
     @backoff.on_exception(backoff.expo, OperationalError, 10)
     def make(self, pg: PsqlExtractor) -> None:
         """
@@ -74,6 +83,6 @@ class MongoState:
                 pg = PsqlExtractor(pg_conn=pg_conn)
                 self.make(pg)
         except OperationalError as e:
-            print("PostgreSQL error:", e)
+            logger.exception(e)
         finally:
             pg_conn.close()
