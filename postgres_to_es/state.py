@@ -60,7 +60,7 @@ class MongoState:
                 f"Обновлены данные записи из таблицы {table} с id: {pg_inst.id}."
             )
 
-    # @logger.catch
+    @logger.catch
     @backoff.on_exception(backoff.expo, OperationalError, 10)
     def make(self, pg: PsqlExtractor) -> None:
         """
