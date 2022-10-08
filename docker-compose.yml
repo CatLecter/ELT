@@ -1,14 +1,13 @@
 services:
   postgres:
-    image: postgres:14.1-alpine3.15
+    image: postgres:14.5-bullseye
     container_name: postgres
     restart: always
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    env_file:
+      - .env_postgres
     volumes:
       - db:/var/lib/postgresql/data
+      - ./schema_design/:/docker-entrypoint-initdb.d/
     ports:
       - "${POSTGRES_PORT}:5432"
 
@@ -16,13 +15,8 @@ services:
     build: ./movies_admin/
     container_name: admin_panel
     restart: always
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=${POSTGRES_PORT}
-      - SECRET_KEY=${SECRET_KEY}
+    env_file:
+      - ./movies_admin/.env
     volumes:
       - ./movies_admin/film_works/:/usr/src/movies_admin/film_works
     depends_on:
@@ -30,7 +24,7 @@ services:
     command: gunicorn --bind 0.0.0.0:8000 config.wsgi --reload
 
   nginx:
-    image: nginx:1.21.4
+    image: nginx:1.23.1
     container_name: nginx
     restart: on-failure
     volumes:
@@ -44,7 +38,7 @@ services:
       - postgres
 
   elasticsearch:
-    image: elasticsearch:7.16.2
+    image: elasticsearch:8.4.3
     container_name: elasticsearch
     restart: always
     environment:
@@ -58,7 +52,7 @@ services:
       - postgres
 
   mongo:
-    image: mongo:5.0.5
+    image: mongo:6.0.2-focal
     container_name: mongo_storage
     restart: always
     environment:
@@ -70,7 +64,7 @@ services:
       - ${MONGO_PORT}:27017
 
   rabbitmq:
-    image: rabbitmq:3.9.12
+    image: rabbitmq:3.11.0
     container_name: rabbitmq
     restart: on-failure
     environment:

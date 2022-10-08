@@ -1,30 +1,34 @@
 [tool.poetry]
-name = "ETL"
+name = "etl"
 version = "0.1.0"
 description = ""
 authors = ["Vasilii Safronov <vasi1988@mail.ru>"]
 license = "MIT"
+readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.9.7"
-django-debug-toolbar = "^3.2.3"
-django-extensions = "^3.1.5"
+python = "^3.10"
+Django = "^4.1.1"
+django-debug-toolbar = "^3.7.0"
+django-extensions = "^3.2.1"
 gunicorn = "^20.1.0"
-elasticsearch = "^7.15.2"
-pydantic = "^1.8.2"
-backoff = "^1.11.1"
-Django = "^4.0"
-psycopg2-binary = "^2.9.2"
-loguru = "^0.5.3"
-pymongo = "^4.0.1"
-python-dotenv = "^0.19.2"
-celery = {extras = ["amqp"], version = "^5.2.3"}
+psycopg2-binary = "^2.9.3"
+backoff = "^2.1.2"
+elasticsearch = "^8.4.2"
+pydantic = "^1.10.2"
+pymongo = "^4.2.0"
+python-dotenv = "^0.21.0"
+loguru = "^0.6.0"
+celery = {extras = ["amqp"], version = "^5.2.7"}
+asyncio = "^3.4.3"
+aiosqlite = "^0.17.0"
+asyncpgsa = "^0.27.1"
 
-[tool.poetry.dev-dependencies]
-black = "^21.11b1"
+
+[tool.poetry.group.dev.dependencies]
+blue = "^0.9.1"
 isort = "^5.10.1"
-flake8 = "^4.0.1"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
