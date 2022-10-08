@@ -1,3 +1,3 @@
-# Проектное задание: ETL
+# ETL
 
-Написать отказоустойчивый перенос данных из Postgres в Elasticsearch
+Перенос данных из Postgres в Elasticsearch
